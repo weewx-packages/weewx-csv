@@ -1,5 +1,6 @@
 # installer for csv service
 # Copyright 2015-2021 Matthew Wall
+# Modified 2026-10-22: release the independent continuation.
 # Distributed under the terms of the GNU Public License (GPLv3)
 
 from weecfg.extension import ExtensionInstaller
@@ -10,7 +11,7 @@ def loader():
 class CSVInstaller(ExtensionInstaller):
     def __init__(self):
         super(CSVInstaller, self).__init__(
-            version="0.11",
+            version="0.12.0",
             name='csv',
             description='Emit loop or archive data in CSV format.',
             author="Matthew Wall",

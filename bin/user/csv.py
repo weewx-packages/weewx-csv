@@ -1,7 +1,11 @@
 # Copyright 2015-2021 Matthew Wall
+# Modified 2026-10-22: atomic snapshots, fixed fields and decimal formatting.
 # Distributed under the terms of the GNU Public License (GPLv3)
 
+import csv as csvlib
 import os
+import stat
+import tempfile
 import os.path
 import time
 
@@ -9,7 +13,7 @@ import weewx
 import weewx.engine
 import weeutil.weeutil
 
-VERSION = "0.11"
+VERSION = "0.12.0"
 
 try:
     import weeutil.logger
@@ -52,6 +56,12 @@ class CSV(weewx.engine.StdService):
         self.datestamp_format = d.get('datestamp_format', '%Y-%m')
         # format for the per-record timestamp
         self.timestamp_format = d.get('timestamp_format')
+        self.decimal_places = d.get('decimal_places')
+        if self.decimal_places is not None:
+            self.decimal_places = int(self.decimal_places)
+            if not 0 <= self.decimal_places <= 15:
+                raise ValueError('decimal_places must be between 0 and 15')
+        self.fields = weeutil.weeutil.option_as_list(d.get('fields'))
         # bind to either loop or archive events
         self.binding = d.get('binding', 'loop')
         if self.binding == 'loop':
@@ -78,18 +88,44 @@ class CSV(weewx.engine.StdService):
             tstr = time.strftime(self.datestamp_format,
                                  time.gmtime(data['dateTime']))
             filename = "%s-%s%s" % (basename, tstr, ext)
-        header = None
-        if self.emit_header and (
-            not os.path.exists(filename) or flag == "w"):
-            header = '# %s\n' % ','.join(self.sort_keys(data))
-        with open(filename, flag) as f:
-            if header:
-                f.write(header)
-            f.write('%s\n' % ','.join(self.sort_data(data)))
+        header = self.emit_header and (not os.path.exists(filename) or flag == "w")
+        if flag == 'a':
+            with open(filename, flag, newline='') as stream:
+                self.write_record(stream, data, header)
+            return
+        directory = os.path.dirname(os.path.abspath(filename))
+        fd, temporary = tempfile.mkstemp(prefix='.weewx-csv-', dir=directory)
+        try:
+            try:
+                mode = stat.S_IMODE(os.stat(filename).st_mode)
+            except FileNotFoundError:
+                mode = 0o644
+            with os.fdopen(fd, 'w', newline='') as stream:
+                os.fchmod(stream.fileno(), mode)
+                self.write_record(stream, data, header)
+            # Readers must never observe a truncated header or half a packet.
+            os.replace(temporary, filename)
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+
+    def write_record(self, stream, record, header):
+        """Write one CSV record, with its matching header when requested.
+
+        Args:
+            stream (typing.TextIO): Open text output stream.
+            record (dict): WeeWX loop packet or archive record.
+            header (bool): Whether to write the column names first.
+        """
+        writer = csvlib.writer(stream, lineterminator='\n')
+        if header:
+            keys = self.sort_keys(record)
+            writer.writerow(['# ' + keys[0]] + keys[1:])
+        writer.writerow(self.sort_data(record))
 
     def sort_keys(self, record):
         fields = ['dateTime']
-        for k in sorted(record):
+        for k in self.fields if self.fields is not None else sorted(record):
             if k != 'dateTime':
                 fields.append(k)
         return fields
@@ -100,7 +136,10 @@ class CSV(weewx.engine.StdService):
             tstr = time.strftime(self.timestamp_format,
                                  time.gmtime(record['dateTime']))
         fields = [tstr]
-        for k in sorted(record):
-            if k != 'dateTime':
-                fields.append(str(record[k]))
+        for k in self.sort_keys(record)[1:]:
+            value = record.get(k, '')
+            if self.decimal_places is not None and isinstance(value, float):
+                fields.append(format(value, '.%df' % self.decimal_places))
+            else:
+                fields.append(str(value))
         return fields
