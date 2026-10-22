@@ -113,7 +113,7 @@ class CSV(weewx.engine.StdService):
         """Write one CSV record, with its matching header when requested.
 
         Args:
-            stream (typing.TextIO): Open text output stream.
+            stream (typing.IO[str]): Open text output stream.
             record (dict): WeeWX loop packet or archive record.
             header (bool): Whether to write the column names first.
         """
