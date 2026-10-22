@@ -2,6 +2,7 @@ import csv
 import importlib.util
 import io
 import os
+import threading
 from pathlib import Path
 from unittest.mock import patch
 
@@ -92,3 +93,36 @@ def test_append_default_and_csv_escaping(tmp_path):
     exporter.write_data({'dateTime': 1, 'text': 'a,b"c'})
     exporter.write_data({'dateTime': 2, 'text': 'next'})
     assert list(csv.reader(path.open())) == [['# dateTime', 'text'], ['1', 'a,b"c'], ['2', 'next']]
+
+
+def test_csv_real_concurrent_reader_and_existing_permissions(tmp_path):
+    CSV = module.CSV
+    engine = type('Engine', (), {'bind': lambda *args: None})()
+    path = tmp_path / 'values.csv'
+    service = CSV(engine, {'CSV': {'filename': str(path), 'mode': 'overwrite',
+        'append_datestamp': False, 'fields': ['outTemp', 'text'], 'decimal_places': 2}})
+    service.write_data({'dateTime': 0, 'outTemp': -0.25, 'text': 'quote, "line"\nend'})
+    path.chmod(0o640)
+    done = threading.Event()
+    failures = []
+    count = [0]
+    def reader():
+        while not done.is_set():
+            with path.open() as stream:
+                rows = list(csv.reader(stream))
+            count[0] += 1
+            if len(rows) != 2 or rows[0] != ['# dateTime', 'outTemp', 'text'] or len(rows[1]) != 3:
+                failures.append(rows)
+    thread = threading.Thread(target=reader)
+    thread.start()
+    try:
+        for stamp in range(1, 250):
+            service.write_data({'dateTime': stamp, 'outTemp': 0.0, 'text': 'quote, "line"\nend'})
+    finally:
+        done.set()
+        thread.join()
+    assert count[0] > 0
+    assert not failures
+    assert path.stat().st_mode & 0o777 == 0o640
+    with path.open() as stream:
+        assert list(csv.reader(stream))[1] == ['249', '0.00', 'quote, "line"\nend']
