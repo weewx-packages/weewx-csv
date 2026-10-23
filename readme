@@ -13,18 +13,21 @@ Installation
 The independent 0.12.0 continuation targets WeeWX 5.5.2–5.6 and Python
 3.10–3.14, with no extra Python dependencies.
 
+For a pip installation, activate the existing virtual environment that runs
+your WeeWX service before running these commands. Both `python` and `weectl`
+must come from that environment. For a distribution package installation, use
+its `weectl`, with `sudo` if required. Add `--config /path/to/weewx.conf` to the
+extension command when your station configuration is not found automatically.
+
 Install the published archive with WeeWX 5's extension installer:
 
 ```sh
 weectl extension install https://github.com/weewx-packages/weewx-csv/releases/download/v0.12.0/weewx-csv-0.12.0.zip
 ```
 
-Use the `weectl` from your WeeWX environment. Add
-`--config /path/to/weewx.conf` when the station configuration is not found
-automatically. Package installations may require `sudo`; activate the WeeWX
-virtual environment for pip installations. Restart your WeeWX service after
-configuration, for example `sudo systemctl restart weewx` on systemd.
-The installer does not restart it for you.
+Restart your WeeWX service after configuration, for example
+`sudo systemctl restart weewx` on systemd. The installer does not restart it
+for you.
 
 The installer registers user.csv.CSV in process_services and installs
 bin/user/csv.py. Configure a filename in a directory writable by WeeWX:
