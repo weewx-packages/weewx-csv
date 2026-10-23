@@ -14,7 +14,7 @@ import weewx
 import weewx.engine
 import weeutil.weeutil
 
-VERSION = "0.12.0"
+VERSION = "0.12.1"
 
 try:
     import weeutil.logger
