@@ -1,4 +1,4 @@
-Unreleased
+0.12.1 2026-10-23
   Insert the datestamp before the extension of the file name, not before the
   first dot of the path. loop.data.csv now becomes loop.data-2026-10.csv.
   Write an empty field for observations that are None.
