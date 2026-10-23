@@ -1,5 +1,6 @@
 # Copyright 2015-2021 Matthew Wall
 # Modified 2026-10-22: atomic snapshots, fixed fields and decimal formatting.
+# Modified 2026-10-23: datestamp before the file extension, empty field for None.
 # Distributed under the terms of the GNU Public License (GPLv3)
 
 import csv as csvlib
@@ -79,12 +80,7 @@ class CSV(weewx.engine.StdService):
         flag = "a" if self.mode == 'append' else "w"
         filename = self.filename
         if self.append_datestamp:
-            basename = filename
-            ext = ''
-            idx = filename.find('.')
-            if idx > -1:
-                basename = filename[:idx]
-                ext = filename[idx:]
+            basename, ext = os.path.splitext(filename)
             tstr = time.strftime(self.datestamp_format,
                                  time.gmtime(data['dateTime']))
             filename = "%s-%s%s" % (basename, tstr, ext)
@@ -137,7 +133,9 @@ class CSV(weewx.engine.StdService):
                                  time.gmtime(record['dateTime']))
         fields = [tstr]
         for k in self.sort_keys(record)[1:]:
-            value = record.get(k, '')
+            value = record.get(k)
+            if value is None:
+                value = ''
             if self.decimal_places is not None and isinstance(value, float):
                 fields.append(format(value, '.%df' % self.decimal_places))
             else:

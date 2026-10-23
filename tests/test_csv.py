@@ -126,3 +126,19 @@ def test_csv_real_concurrent_reader_and_existing_permissions(tmp_path):
     assert path.stat().st_mode & 0o777 == 0o640
     with path.open() as stream:
         assert list(csv.reader(stream))[1] == ['249', '0.00', 'quote, "line"\nend']
+
+
+def test_datestamp_goes_before_the_file_extension(tmp_path):
+    directory = tmp_path / 'user.name'
+    directory.mkdir()
+    for name in ['data.csv', 'data']:
+        exporter = service(directory / name)
+        exporter.append_datestamp = True
+        exporter.write_data({'dateTime': 1792713600, 'outTemp': 1.0})
+    assert sorted(p.name for p in directory.iterdir()) == ['data-2026-10', 'data-2026-10.csv']
+
+
+def test_none_value_is_an_empty_field(tmp_path):
+    path = tmp_path / 'loop.csv'
+    service(path).write_data({'dateTime': 1, 'outTemp': None, 'outHumidity': 0})
+    assert list(csv.reader(path.open()))[1] == ['1', '0', '']

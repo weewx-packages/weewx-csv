@@ -1,3 +1,8 @@
+Unreleased
+  Insert the datestamp before the extension of the file name, not before the
+  first dot of the path. loop.data.csv now becomes loop.data-2026-10.csv.
+  Write an empty field for observations that are None.
+
 0.12.0 2026-10-22
   Atomic overwrite snapshots; optional fixed fields and decimal places.
   Quote CSV string fields containing delimiters.
