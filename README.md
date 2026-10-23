@@ -50,7 +50,7 @@ record:
 | `filename` | `/var/tmp/data.csv` | Path of the output file. |
 | `binding` | `loop` | `loop` writes on every LOOP packet. Any other value, for example `archive`, writes on archive records. |
 | `mode` | `append` | `append` adds a line per event. Any other value, for example `overwrite`, replaces the file on every event. |
-| `append_datestamp` | `True` | Insert a UTC datestamp into the file name, so `/var/tmp/data.csv` becomes `/var/tmp/data-2026-10.csv`. |
+| `append_datestamp` | `True` | Insert a UTC datestamp into the file name, so `/var/tmp/data.csv` becomes `/var/tmp/data-2026-10.csv`. A name without an extension gets it at the end. |
 | `datestamp_format` | `%Y-%m` | `strftime` format of that datestamp. `%Y-%m-%d` starts a new file each day. |
 | `header` | `True` | Write a header line with the column names, prefixed by `# `. |
 | `timestamp_format` | none | `strftime` format for `dateTime`, in UTC. Without it, `dateTime` is the Unix epoch. |
@@ -69,16 +69,9 @@ Without `fields`, the columns are `dateTime` followed by the observations of
 the packet sorted by name. LOOP packets can contain different
 observations on each event, so the columns can shift between lines. Set
 `fields` for fixed columns, or use `binding = archive` for consolidated
-archive records. A configured field missing from the packet is written empty.
+archive records. A configured field missing from the packet is written empty,
+and so is an observation without a value.
 Values containing commas, quotes or line breaks are quoted.
-
-## Limitations
-
-- The datestamp is inserted before the first `.` in the whole path, not before
-  the file extension. A dot in a directory name, as in `/home/user.name/data.csv`,
-  puts the datestamp into the directory part.
-- An observation that is present with no value is written as `None`, not as
-  an empty field.
 
 ## Development
 
