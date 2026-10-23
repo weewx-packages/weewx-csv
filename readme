@@ -10,18 +10,37 @@ archive data.
 ===============================================================================
 Installation
 
-1) download
+The independent 0.12.0 continuation targets WeeWX 5.5.2–5.6 and Python
+3.10–3.14, with no extra Python dependencies.
 
-  wget -O weewx-csv.zip https://github.com/weewx-packages/weewx-csv/archive/refs/tags/v0.12.0.zip
+Install the published archive with WeeWX 5's extension installer:
 
-2) run the installer:
+```sh
+weectl extension install https://github.com/weewx-packages/weewx-csv/releases/download/v0.12.0/weewx-csv-0.12.0.zip
+```
 
-weectl extension install weewx-csv.zip
+Use the `weectl` from your WeeWX environment. Add
+`--config /path/to/weewx.conf` when the station configuration is not found
+automatically. Package installations may require `sudo`; activate the WeeWX
+virtual environment for pip installations. Restart your WeeWX service after
+configuration, for example `sudo systemctl restart weewx` on systemd.
+The installer does not restart it for you.
 
-3) restart weewx:
+The installer registers user.csv.CSV in process_services and installs
+bin/user/csv.py. Configure a filename in a directory writable by WeeWX:
 
-sudo /etc/init.d/weewx stop
-sudo /etc/init.d/weewx start
+[CSV]
+    filename = /var/tmp/weather.csv
+    binding = archive
+    mode = overwrite
+    append_datestamp = False
+    fields = outTemp, outHumidity
+
+After restart this example replaces one snapshot per archive record.
+Use mode = append for a log. There is no separate report or HTTP server.
+The service writes the packet's units without converting them.
+Back up custom configuration before upgrading with a newer archive.
+To remove it, run weectl extension uninstall csv and restart WeeWX.
 
 
 ===============================================================================
